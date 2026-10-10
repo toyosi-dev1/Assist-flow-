@@ -1,0 +1,6 @@
+{
+  "name": "AssistFlow — Remote Executive Assistant Workspace",
+  "description": "AssistFlow helps Virtual and Executive Assistants manage tasks, meetings, calendars, follow-ups, clients, travel, and administrative workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
