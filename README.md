@@ -61,14 +61,15 @@ The production output will be generated inside the `dist/` directory.
 
 ## GitHub Pages Deployment
 
-The application is configured with relative asset paths (`base: './'` in `vite.config.ts`) and client-side tab routing, making it compatible with GitHub Pages:
+The application includes an automated GitHub Actions deployment workflow in `.github/workflows/deploy.yml` and is pre-configured with relative asset paths (`base: './'` in `vite.config.ts`).
 
-1. Build the production files:
-   ```bash
-   npm run build
-   ```
-2. Deploy the `dist` directory to your repository's `gh-pages` branch, or configure GitHub Actions to deploy from the `dist` directory upon pushes to `main`.
-3. Ensure GitHub Pages is set to serve from the root of the `gh-pages` branch or the GitHub Actions workflow.
+To publish via GitHub Actions:
+
+1. Push this repository to GitHub (ensure branch is `main` or `master`).
+2. In your repository on GitHub, navigate to **Settings > Pages**.
+3. Under **Build and deployment > Source**, ensure **GitHub Actions** is selected.
+4. Click the **Actions** tab at the top of your GitHub repository. The workflow `Deploy to GitHub Pages` will trigger automatically (or click **Run workflow**).
+5. Once the job completes with a green checkmark, your live URL will appear under **Settings > Pages** (e.g. `https://<username>.github.io/<repo-name>/`).
 
 ## Limitations of Browser-Local Storage
 
