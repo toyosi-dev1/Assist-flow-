@@ -15,11 +15,12 @@ import {
   Edit2,
   Trash2,
   Save,
-  Check
+  Check,
+  AlertTriangle
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { Meeting, MeetingChecklistItem, MeetingActionItem } from '../types';
-import { getTodayString, formatDisplayDate } from '../utils/dateUtils';
+import { getTodayString, formatDisplayDate, findOverlappingMeetings } from '../utils/dateUtils';
 import { Modal } from '../components/common/Modal';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 
@@ -114,6 +115,10 @@ export const MeetingsPage: React.FC = () => {
     e.preventDefault();
     if (!formTitle.trim()) {
       setFormError('Meeting title is required.');
+      return;
+    }
+    if (formStart >= formEnd) {
+      setFormError('Meeting end time must be after start time.');
       return;
     }
 
@@ -671,6 +676,21 @@ export const MeetingsPage: React.FC = () => {
           {formError && (
             <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-lg">
               {formError}
+            </div>
+          )}
+
+          {findOverlappingMeetings(meetings, formDate, formStart, formEnd, editingMeeting?.id).length > 0 && (
+            <div className="p-2.5 bg-amber-50 border border-amber-300 text-amber-950 text-xs rounded-lg flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Scheduling Notice</p>
+                <p className="mt-0.5 text-stone-700">
+                  This time slot overlaps with another scheduled meeting ("
+                  {findOverlappingMeetings(meetings, formDate, formStart, formEnd, editingMeeting?.id)[0].title}
+                  ", {findOverlappingMeetings(meetings, formDate, formStart, formEnd, editingMeeting?.id)[0].startTime} - {findOverlappingMeetings(meetings, formDate, formStart, formEnd, editingMeeting?.id)[0].endTime}).
+                  You can proceed if this double-booking is intentional.
+                </p>
+              </div>
             </div>
           )}
 

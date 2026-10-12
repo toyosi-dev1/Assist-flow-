@@ -70,3 +70,19 @@ export function getGreeting(name: string): string {
   }
   return `${timeGreeting}, ${name}`;
 }
+
+export function findOverlappingMeetings<T extends { id: string; date: string; startTime: string; endTime: string; title: string; status?: string }>(
+  meetings: T[],
+  date: string,
+  startTime: string,
+  endTime: string,
+  excludeId?: string
+): T[] {
+  if (!date || !startTime || !endTime) return [];
+  return meetings.filter(m => {
+    if (m.id === excludeId || m.status === 'Cancelled') return false;
+    if (m.date !== date) return false;
+    return startTime < m.endTime && endTime > m.startTime;
+  });
+}
+

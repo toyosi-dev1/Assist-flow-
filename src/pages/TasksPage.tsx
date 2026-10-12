@@ -32,6 +32,7 @@ export const TasksPage: React.FC = () => {
   } = useWorkspace();
 
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [taskTab, setTaskTab] = useState<'all' | 'active' | 'today' | 'overdue' | 'waiting' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -125,7 +126,14 @@ export const TasksPage: React.FC = () => {
     const matchesPriority = priorityFilter === 'all' || t.priority === priorityFilter;
     const matchesClient = clientFilter === 'all' || t.client === clientFilter;
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesClient;
+    let matchesTab = true;
+    if (taskTab === 'active') matchesTab = t.status !== 'Completed';
+    else if (taskTab === 'today') matchesTab = t.dueDate === getTodayString() && t.status !== 'Completed';
+    else if (taskTab === 'overdue') matchesTab = t.status !== 'Completed' && isDatePast(t.dueDate);
+    else if (taskTab === 'waiting') matchesTab = t.status === 'Waiting';
+    else if (taskTab === 'completed') matchesTab = t.status === 'Completed';
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesClient && matchesTab;
   });
 
   const sortedTasks = [...filteredTasks].sort((a, b) => {
@@ -184,6 +192,75 @@ export const TasksPage: React.FC = () => {
             <span>New Task</span>
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 border-b border-stone-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setTaskTab('all')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            taskTab === 'all'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          All Tasks ({tasks.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setTaskTab('active')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            taskTab === 'active'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          Active ({tasks.filter(t => t.status !== 'Completed').length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setTaskTab('today')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            taskTab === 'today'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          Due Today ({tasks.filter(t => t.dueDate === getTodayString() && t.status !== 'Completed').length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setTaskTab('overdue')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            taskTab === 'overdue'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          Overdue ({tasks.filter(t => t.status !== 'Completed' && isDatePast(t.dueDate)).length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setTaskTab('waiting')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            taskTab === 'waiting'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          Waiting On Stakeholder ({tasks.filter(t => t.status === 'Waiting').length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setTaskTab('completed')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            taskTab === 'completed'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          Completed ({tasks.filter(t => t.status === 'Completed').length})
+        </button>
       </div>
 
       <div className="bg-white rounded-xl border border-[#E8E2D5] p-4 shadow-xs space-y-3">

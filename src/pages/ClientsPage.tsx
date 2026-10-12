@@ -95,8 +95,8 @@ export const ClientsPage: React.FC = () => {
       setFormError('Client name is required.');
       return;
     }
-    if (email && !email.includes('@')) {
-      setFormError('Please enter a valid email address.');
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setFormError('Please enter a valid email address (e.g., contact@company.com).');
       return;
     }
 

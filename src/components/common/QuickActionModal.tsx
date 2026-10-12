@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Modal } from './Modal';
 import { useWorkspace } from '../../context/WorkspaceContext';
-import { getTodayString } from '../../utils/dateUtils';
+import { getTodayString, findOverlappingMeetings } from '../../utils/dateUtils';
 import { TaskCategory, PriorityLevel, EventType, FollowUpStatus } from '../../types';
 
 export const QuickActionModal: React.FC = () => {
@@ -9,6 +10,7 @@ export const QuickActionModal: React.FC = () => {
     quickActionModal,
     setQuickActionModal,
     clients,
+    meetings,
     addTask,
     addMeeting,
     addFollowUp,
@@ -93,6 +95,10 @@ export const QuickActionModal: React.FC = () => {
     e.preventDefault();
     if (!meetingTitle.trim()) {
       setFormError('Meeting title is required.');
+      return;
+    }
+    if (meetingStart >= meetingEnd) {
+      setFormError('Meeting end time must be after start time.');
       return;
     }
     const attendeesList = meetingAttendees
@@ -337,6 +343,18 @@ export const QuickActionModal: React.FC = () => {
 
       {activeTab === 'meeting' && (
         <form onSubmit={handleSubmitMeeting} className="space-y-4">
+          {findOverlappingMeetings(meetings, meetingDate, meetingStart, meetingEnd).length > 0 && (
+            <div className="p-2.5 bg-amber-50 border border-amber-300 text-amber-950 text-xs rounded-lg flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Scheduling Notice</p>
+                <p className="mt-0.5 text-stone-700">
+                  This time slot overlaps with "{findOverlappingMeetings(meetings, meetingDate, meetingStart, meetingEnd)[0].title}" ({findOverlappingMeetings(meetings, meetingDate, meetingStart, meetingEnd)[0].startTime} - {findOverlappingMeetings(meetings, meetingDate, meetingStart, meetingEnd)[0].endTime}). Proceed if this is intentional.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-stone-700 mb-1">
               Meeting Title <span className="text-amber-700">*</span>

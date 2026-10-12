@@ -391,7 +391,7 @@ export function getInitialCalendarEvents(): CalendarEvent[] {
 
   return [
     {
-      id: 'cal-1',
+      id: 'cal-meeting-1',
       title: 'Q4 Portfolio Review & Executive Sync',
       date: today,
       startTime: '10:00',
@@ -403,7 +403,7 @@ export function getInitialCalendarEvents(): CalendarEvent[] {
       notes: 'Key quarterly partner review.'
     },
     {
-      id: 'cal-2',
+      id: 'cal-meeting-2',
       title: 'Lumina Product Roadmap & Regulatory Debrief',
       date: today,
       startTime: '14:30',
@@ -427,7 +427,7 @@ export function getInitialCalendarEvents(): CalendarEvent[] {
       notes: 'Organizing travel tickets, vouchers, and printed schedules.'
     },
     {
-      id: 'cal-4',
+      id: 'cal-meeting-3',
       title: 'London Trip Briefing & Logistics Walkthrough',
       date: tomorrow,
       startTime: '09:30',
@@ -437,6 +437,18 @@ export function getInitialCalendarEvents(): CalendarEvent[] {
       location: 'Executive Office / Zoom',
       type: 'Meeting',
       notes: 'Final pre-departure briefing.'
+    },
+    {
+      id: 'cal-meeting-4',
+      title: 'Media Production & Content Strategy Review',
+      date: nextWeek,
+      startTime: '16:00',
+      endTime: '16:45',
+      attendees: ['Chloe Bennett', 'Alex Morgan'],
+      client: 'Vanguard Media Group',
+      location: 'Zoom Studio 2',
+      type: 'Meeting',
+      notes: 'Production pipeline and sponsor agreements.'
     },
     {
       id: 'cal-5',

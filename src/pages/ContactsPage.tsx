@@ -72,8 +72,8 @@ export const ContactsPage: React.FC = () => {
       setFormError('Contact name is required.');
       return;
     }
-    if (email && !email.includes('@')) {
-      setFormError('Please enter a valid email address.');
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setFormError('Please enter a valid email address (e.g., name@domain.com).');
       return;
     }
 

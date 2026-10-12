@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Plus,
   Search,
-  Filter,
   CheckCircle2,
   Clock,
   AlertTriangle,
@@ -11,7 +10,9 @@ import {
   Calendar,
   Building,
   User,
-  ArrowRight
+  MessageSquare,
+  Send,
+  RotateCcw
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { FollowUp, FollowUpStatus, PriorityLevel } from '../types';
@@ -33,6 +34,7 @@ export const FollowUpsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [activeTabFilter, setActiveTabFilter] = useState<'all' | 'due' | 'waiting' | 'closed'>('all');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
@@ -130,9 +132,18 @@ export const FollowUpsPage: React.FC = () => {
     updateFollowUp({
       ...reschedulingFollowUp,
       nextFollowUpDate: newRescheduleDate,
-      status: 'Pending'
+      status: reschedulingFollowUp.status === 'Closed' ? 'Pending' : reschedulingFollowUp.status
     });
     setRescheduleModalOpen(false);
+  };
+
+  const handleQuickStatusChange = (fu: FollowUp, newStatus: FollowUpStatus) => {
+    const isNowContacted = newStatus === 'Followed Up' || newStatus === 'Waiting Response';
+    updateFollowUp({
+      ...fu,
+      status: newStatus,
+      lastContactDate: isNowContacted ? today : fu.lastContactDate
+    });
   };
 
   const filteredFollowUps = followUps.filter(f => {
@@ -145,7 +156,16 @@ export const FollowUpsPage: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || f.status === statusFilter;
     const matchesPriority = priorityFilter === 'all' || f.priority === priorityFilter;
 
-    return matchesSearch && matchesStatus && matchesPriority;
+    let matchesTab = true;
+    if (activeTabFilter === 'due') {
+      matchesTab = f.status !== 'Closed' && (f.nextFollowUpDate <= today || f.status === 'Due Today');
+    } else if (activeTabFilter === 'waiting') {
+      matchesTab = f.status === 'Waiting Response';
+    } else if (activeTabFilter === 'closed') {
+      matchesTab = f.status === 'Closed';
+    }
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesTab;
   });
 
   const getStatusBadge = (item: FollowUp) => {
@@ -163,11 +183,11 @@ export const FollowUpsPage: React.FC = () => {
       case 'Closed':
         return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 text-stone-600">Closed</span>;
       case 'Due Today':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-900">Due Today</span>;
+        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-900 font-bold">Due Today</span>;
       case 'Waiting Response':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-800">Waiting Response</span>;
+        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Waiting Response</span>;
       case 'Followed Up':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-800">Followed Up</span>;
+        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">Followed Up</span>;
       default:
         return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 text-stone-700">Pending</span>;
     }
@@ -179,17 +199,64 @@ export const FollowUpsPage: React.FC = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">Follow-up Tracker</h1>
           <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
-            Never let a stakeholder loop go cold. Track response timelines, pending outreach, and re-engagements.
+            Systematic communications management. Track outstanding responses, schedule reminders, and log engagement history.
           </p>
         </div>
 
         <button
           type="button"
           onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-800 hover:bg-amber-900 text-white text-xs sm:text-sm font-medium rounded-lg shadow-xs cursor-pointer transition-colors self-start sm:self-auto"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-800 hover:bg-amber-900 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-xs cursor-pointer transition-colors self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Add Follow-up</span>
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2 border-b border-stone-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTabFilter('all')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            activeTabFilter === 'all'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          All Threads ({followUps.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTabFilter('due')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            activeTabFilter === 'due'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          Action Required ({followUps.filter(f => f.status !== 'Closed' && (f.nextFollowUpDate <= today || f.status === 'Due Today')).length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTabFilter('waiting')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            activeTabFilter === 'waiting'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          Awaiting Stakeholder Response ({followUps.filter(f => f.status === 'Waiting Response').length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTabFilter('closed')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            activeTabFilter === 'closed'
+              ? 'bg-amber-800 text-white'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          Closed ({followUps.filter(f => f.status === 'Closed').length})
         </button>
       </div>
 
@@ -212,7 +279,7 @@ export const FollowUpsPage: React.FC = () => {
               onChange={e => setStatusFilter(e.target.value)}
               className="w-full px-3 py-1.5 text-xs sm:text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-amber-700 bg-white"
             >
-              <option value="all">All Statuses</option>
+              <option value="all">All Specific Statuses</option>
               <option value="Pending">Pending</option>
               <option value="Due Today">Due Today</option>
               <option value="Waiting Response">Waiting Response</option>
@@ -236,108 +303,157 @@ export const FollowUpsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs text-stone-500">
-          <span>Tracking {filteredFollowUps.length} follow-up threads</span>
+          <span>Showing {filteredFollowUps.length} of {followUps.length} follow-up threads</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredFollowUps.map(fu => {
-          const isOverdue = fu.status !== 'Closed' && isDatePast(fu.nextFollowUpDate);
-          return (
-            <div
-              key={fu.id}
-              className={`bg-white rounded-xl border p-4 shadow-xs flex flex-col justify-between transition-colors space-y-3 ${
-                isOverdue
-                  ? 'border-amber-400 bg-amber-50/20'
-                  : fu.status === 'Closed'
-                  ? 'border-stone-200 opacity-75'
-                  : 'border-[#E8E2D5] hover:border-amber-300'
-              }`}
-            >
-              <div className="space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  {getStatusBadge(fu)}
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      fu.priority === 'High'
-                        ? 'bg-amber-100 text-amber-950'
-                        : 'bg-stone-100 text-stone-600'
-                    }`}
-                  >
-                    {fu.priority}
-                  </span>
+      {filteredFollowUps.length === 0 ? (
+        <div className="bg-white rounded-xl border border-[#E8E2D5] p-12 text-center text-stone-400 shadow-xs">
+          <MessageSquare className="w-8 h-8 mx-auto mb-2 text-stone-300" />
+          <p className="text-sm font-medium">No follow-ups match your current filter.</p>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="mt-3 text-xs font-semibold text-amber-800 hover:underline cursor-pointer"
+          >
+            + Create a follow-up
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredFollowUps.map(fu => {
+            const isOverdue = fu.status !== 'Closed' && isDatePast(fu.nextFollowUpDate);
+            return (
+              <div
+                key={fu.id}
+                className={`bg-white rounded-xl border p-4 shadow-xs flex flex-col justify-between transition-all space-y-3 ${
+                  isOverdue
+                    ? 'border-amber-400 bg-amber-50/20'
+                    : fu.status === 'Closed'
+                    ? 'border-stone-200 opacity-80'
+                    : 'border-[#E8E2D5] hover:border-amber-300'
+                }`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    {getStatusBadge(fu)}
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        fu.priority === 'High'
+                          ? 'bg-amber-100 text-amber-950'
+                          : 'bg-stone-100 text-stone-600'
+                      }`}
+                    >
+                      {fu.priority}
+                    </span>
+                  </div>
+
+                  <h3 className={`text-sm font-bold leading-snug ${fu.status === 'Closed' ? 'line-through text-stone-500' : 'text-stone-900'}`}>
+                    {fu.subject}
+                  </h3>
+
+                  <div className="space-y-1 text-xs text-stone-600">
+                    <div className="flex items-center gap-1.5 font-semibold text-stone-800">
+                      <User className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                      <span>{fu.contactName}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Building className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                      <span>{fu.company}</span>
+                    </div>
+                  </div>
+
+                  {fu.description && (
+                    <div className="pt-2 border-t border-stone-100">
+                      <span className="text-[10px] font-bold uppercase text-stone-400 block tracking-wider">
+                        Outstanding Deliverable / Request:
+                      </span>
+                      <p className="text-xs text-stone-700 mt-0.5 line-clamp-2 leading-relaxed">
+                        {fu.description}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-stone-100 text-[11px] text-stone-500 flex items-center justify-between">
+                    <span>Last: {formatDisplayDate(fu.lastContactDate)}</span>
+                    <span className={`font-semibold ${isOverdue ? 'text-amber-900 font-bold' : 'text-stone-700'}`}>
+                      Next: {formatDisplayDate(fu.nextFollowUpDate)}
+                    </span>
+                  </div>
                 </div>
 
-                <h3 className={`text-sm font-bold ${fu.status === 'Closed' ? 'line-through text-stone-500' : 'text-stone-900'}`}>
-                  {fu.subject}
-                </h3>
-
-                <div className="space-y-1 text-xs text-stone-600">
-                  <div className="flex items-center gap-1.5 font-medium text-stone-800">
-                    <User className="w-3.5 h-3.5 text-stone-400" />
-                    <span>{fu.contactName}</span>
+                <div className="pt-3 border-t border-stone-100 space-y-2">
+                  <div className="flex items-center justify-between gap-1 text-[11px]">
+                    <span className="text-stone-500 font-medium">Quick Status:</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatusChange(fu, 'Waiting Response')}
+                        className={`px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                          fu.status === 'Waiting Response' ? 'bg-blue-100 text-blue-900 font-bold' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                        }`}
+                        title="Mark as Awaiting Response"
+                      >
+                        Awaiting
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatusChange(fu, 'Followed Up')}
+                        className={`px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                          fu.status === 'Followed Up' ? 'bg-emerald-100 text-emerald-900 font-bold' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                        }`}
+                        title="Mark as Followed Up today"
+                      >
+                        Contacted
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleFollowUpComplete(fu.id)}
+                        className={`px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                          fu.status === 'Closed' ? 'bg-stone-300 text-stone-800 font-bold' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                        }`}
+                        title={fu.status === 'Closed' ? 'Reopen thread' : 'Close thread'}
+                      >
+                        {fu.status === 'Closed' ? 'Reopen' : 'Close'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Building className="w-3.5 h-3.5 text-stone-400" />
-                    <span>{fu.company}</span>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-stone-100">
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openRescheduleModal(fu)}
+                        className="p-1.5 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg cursor-pointer transition-colors"
+                        title="Reschedule next follow-up date"
+                      >
+                        <Calendar className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(fu)}
+                        className="p-1.5 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg cursor-pointer transition-colors"
+                        title="Edit full follow-up details"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setFollowUpToDelete(fu.id)}
+                      className="p-1.5 text-stone-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors"
+                      title="Delete follow-up record"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
-
-                {fu.description && (
-                  <p className="text-xs text-stone-500 line-clamp-2 pt-1 border-t border-stone-100">
-                    {fu.description}
-                  </p>
-                )}
-
-                <div className="pt-2 text-[11px] text-stone-500 flex items-center justify-between">
-                  <span>Last: {formatDisplayDate(fu.lastContactDate)}</span>
-                  <span className={`font-semibold ${isOverdue ? 'text-amber-900 font-bold' : ''}`}>
-                    Next: {formatDisplayDate(fu.nextFollowUpDate)}
-                  </span>
                 </div>
               </div>
-
-              <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => toggleFollowUpComplete(fu.id)}
-                    className="p-1.5 text-stone-500 hover:text-amber-800 hover:bg-stone-100 rounded-lg cursor-pointer"
-                    title={fu.status === 'Closed' ? 'Reopen Follow-up' : 'Mark as Closed'}
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openRescheduleModal(fu)}
-                    className="p-1.5 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg cursor-pointer"
-                    title="Reschedule follow-up date"
-                  >
-                    <Calendar className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(fu)}
-                    className="p-1.5 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg cursor-pointer"
-                    title="Edit follow-up"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setFollowUpToDelete(fu.id)}
-                  className="p-1.5 text-stone-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer"
-                  title="Delete follow-up"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       <Modal
         isOpen={modalOpen}
@@ -445,12 +561,12 @@ export const FollowUpsPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">Context & Key Questions</label>
+            <label className="block text-xs font-semibold text-stone-700 mb-1">Outstanding Request & Deliverable</label>
             <textarea
               rows={3}
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="What specifically needs to be clarified or confirmed?"
+              placeholder="What specifically is pending from the stakeholder?"
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-amber-700"
             />
           </div>
@@ -481,10 +597,10 @@ export const FollowUpsPage: React.FC = () => {
       >
         <form onSubmit={handleSaveReschedule} className="space-y-4">
           <p className="text-xs text-stone-600">
-            Rescheduling for: <strong className="text-stone-900">{reschedulingFollowUp?.contactName}</strong>
+            Rescheduling for: <strong className="text-stone-900">{reschedulingFollowUp?.contactName}</strong> ({reschedulingFollowUp?.company})
           </p>
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">New Target Date</label>
+            <label className="block text-xs font-semibold text-stone-700 mb-1">New Follow-up Date</label>
             <input
               type="date"
               required

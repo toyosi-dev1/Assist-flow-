@@ -278,6 +278,36 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const addCalendarEvent = (eventInput: Omit<CalendarEvent, 'id'>) => {
+    if (eventInput.type === 'Meeting') {
+      const meetingId = `meeting-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const newMeeting: Meeting = {
+        id: meetingId,
+        title: eventInput.title,
+        date: eventInput.date,
+        startTime: eventInput.startTime,
+        endTime: eventInput.endTime,
+        attendees: eventInput.attendees,
+        client: eventInput.client,
+        meetingLink: '',
+        location: eventInput.location,
+        agenda: eventInput.notes,
+        prepChecklist: [],
+        notes: '',
+        decisions: [],
+        actionItems: [],
+        status: 'Scheduled'
+      };
+      const newEvent: CalendarEvent = {
+        ...eventInput,
+        id: `cal-${meetingId}`
+      };
+      setData(prev => ({
+        ...prev,
+        meetings: [newMeeting, ...prev.meetings],
+        calendarEvents: [...prev.calendarEvents, newEvent]
+      }));
+      return;
+    }
     const newEvent: CalendarEvent = {
       ...eventInput,
       id: `cal-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
@@ -289,17 +319,41 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateCalendarEvent = (updatedEvent: CalendarEvent) => {
+    const meetingId = updatedEvent.id.startsWith('cal-meeting-')
+      ? updatedEvent.id.replace('cal-', '')
+      : null;
     setData(prev => ({
       ...prev,
-      calendarEvents: prev.calendarEvents.map(e => (e.id === updatedEvent.id ? updatedEvent : e))
+      calendarEvents: prev.calendarEvents.map(e => (e.id === updatedEvent.id ? updatedEvent : e)),
+      meetings: meetingId
+        ? prev.meetings.map(m =>
+            m.id === meetingId
+              ? {
+                  ...m,
+                  title: updatedEvent.title,
+                  date: updatedEvent.date,
+                  startTime: updatedEvent.startTime,
+                  endTime: updatedEvent.endTime,
+                  attendees: updatedEvent.attendees,
+                  client: updatedEvent.client,
+                  location: updatedEvent.location
+                }
+              : m
+          )
+        : prev.meetings
     }));
   };
 
   const deleteCalendarEvent = (id: string) => {
+    const meetingId = id.startsWith('cal-meeting-') ? id.replace('cal-', '') : null;
     setData(prev => ({
       ...prev,
-      calendarEvents: prev.calendarEvents.filter(e => e.id !== id)
+      calendarEvents: prev.calendarEvents.filter(e => e.id !== id),
+      meetings: meetingId ? prev.meetings.filter(m => m.id !== meetingId) : prev.meetings
     }));
+    if (meetingId && selectedMeetingId === meetingId) {
+      setSelectedMeetingId(null);
+    }
   };
 
   const addFollowUp = (followUpInput: Omit<FollowUp, 'id'>) => {
